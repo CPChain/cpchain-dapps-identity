@@ -45,4 +45,78 @@ func TestDeployAndRegister(t *testing.T) {
 		candidate2Addr: {Balance: new(big.Int).Mul(big.NewInt(1000000), big.NewInt(configs.Cpc))}})
 	_, instance := deploy(ownerKey, contractBackend)
 	_ = instance
+
+	// register
+	identity := "{\"pub_key\":\"hello\", \"name\": \"value\"}"
+	register(t, instance, candidateKey, identity)
+	contractBackend.Commit()
+
+	checkNum(t, instance, 1)
+	checkIdentity(t, instance, candidateAddr, identity)
+	if _, err := instance.Get(nil, candidate2Addr); err == nil {
+		t.Error("should get an error because the address have not already register its identity")
+	}
+
+	// add more
+	identity2 := "{\"pub_key\":\"hello2\", \"name\": \"value\"}"
+	register(t, instance, candidate2Key, identity2)
+	contractBackend.Commit()
+
+	checkNum(t, instance, 2)
+	checkIdentity(t, instance, candidateAddr, identity)
+	checkIdentity(t, instance, candidate2Addr, identity2)
+
+	// remove
+	remove(t, instance, candidateKey)
+	contractBackend.Commit()
+
+	checkNum(t, instance, 1)
+	if _, err := instance.Get(nil, candidateAddr); err == nil {
+		t.Error("should get an error because the address have not already register its identity")
+	}
+	checkIdentity(t, instance, candidate2Addr, identity2)
+
+}
+
+func register(t *testing.T, instance *identity.Identity, key *ecdsa.PrivateKey, identity string) {
+	txOpts := bind.NewKeyedTransactor(key)
+	txOpts.GasLimit = uint64(50000000)
+	txOpts.Value = big.NewInt(0)
+	_, err := instance.Register(txOpts, identity)
+	if err != nil {
+		t.Fatal("register failed:", err)
+	}
+}
+
+func remove(t *testing.T, instance *identity.Identity, key *ecdsa.PrivateKey) {
+	txOpts := bind.NewKeyedTransactor(key)
+	txOpts.GasLimit = uint64(50000000)
+	txOpts.Value = big.NewInt(0)
+	_, err := instance.Remove(txOpts)
+	if err != nil {
+		t.Fatal("register failed:", err)
+	}
+}
+
+func checkError(t *testing.T, title string, err error) {
+	if err != nil {
+		t.Fatal(title, ":", err)
+	}
+}
+
+func checkIdentity(t *testing.T, instance *identity.Identity, addr common.Address, expect string) {
+	got, err := instance.Get(nil, addr)
+	checkError(t, "get identity", err)
+	if got != expect {
+		t.Errorf("got identity do not equal to the expect: '%v' != '%v'", got, expect)
+	}
+}
+
+func checkNum(t *testing.T, instance *identity.Identity, amount int) {
+	num, err := instance.Size(nil)
+	checkError(t, "get num", err)
+
+	if num.Cmp(new(big.Int).SetInt64(int64(amount))) != 0 {
+		t.Errorf("rnode'num %d != %d", num, amount)
+	}
 }

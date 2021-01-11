@@ -4,19 +4,22 @@
 package identity
 
 import (
+	"math/big"
 	"strings"
 
+	cpchain "bitbucket.org/cpchain/chain"
 	"bitbucket.org/cpchain/chain/accounts/abi"
 	"bitbucket.org/cpchain/chain/accounts/abi/bind"
 	"bitbucket.org/cpchain/chain/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/event"
 )
 
 // IdentityABI is the input ABI used to generate the binding from.
-const IdentityABI = "[{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}]"
+const IdentityABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"enabled\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"enableContract\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"disableContract\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"size\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"remove\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"get\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"content\",\"type\":\"string\"}],\"name\":\"register\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"who\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"identity\",\"type\":\"string\"}],\"name\":\"NewIdentity\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"who\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"identity\",\"type\":\"string\"}],\"name\":\"UpdateIdentity\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"who\",\"type\":\"address\"}],\"name\":\"RemoveIdentity\",\"type\":\"event\"}]"
 
 // IdentityBin is the compiled bytecode used for deploying new contracts.
-const IdentityBin = `0x6080604052348015600f57600080fd5b5060008054600160a060020a03191633179055603580602f6000396000f3006080604052600080fd00a165627a7a723058204ac6ee26b0f45417e98d82497ee5c51127505d54d48881d1c4ce12cf6d4e8d940029`
+const IdentityBin = `0x60806040526000805460a060020a60ff0219167401000000000000000000000000000000000000000017815560055534801561003a57600080fd5b5060008054600160a060020a031916331790556108ba8061005c6000396000f3006080604052600436106100825763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663238dafe08114610087578063367edd32146100b0578063894ba833146100c7578063949d225d146100dc578063a7f4377914610103578063c2bc2efc1461010b578063f2c298be146101a1575b600080fd5b34801561009357600080fd5b5061009c6101ed565b604080519115158252519081900360200190f35b3480156100bc57600080fd5b506100c561020e565b005b3480156100d357600080fd5b506100c561025c565b3480156100e857600080fd5b506100f1610293565b60408051918252519081900360200190f35b6100c561029a565b34801561011757600080fd5b5061012c600160a060020a0360043516610330565b6040805160208082528351818301528351919283929083019185019080838360005b8381101561016657818101518382015260200161014e565b50505050905090810190601f1680156101935780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b6040805160206004803580820135601f81018490048402850184019095528484526100c59436949293602493928401919081908401838280828437509497506103f79650505050505050565b60005474010000000000000000000000000000000000000000900460ff1681565b600054600160a060020a0316331461022557600080fd5b6000805474ff0000000000000000000000000000000000000000191674010000000000000000000000000000000000000000179055565b600054600160a060020a0316331461027357600080fd5b6000805474ff000000000000000000000000000000000000000019169055565b6005545b90565b60005474010000000000000000000000000000000000000000900460ff1615156102c357600080fd5b6102d460013363ffffffff6105d516565b15156102df57600080fd5b6102f060013363ffffffff6105f816565b50600580546000190190556040805133815290517fbf872b0739f3bc6313ee30ed542a610dfcb6141e0e7f49ccc2ea8eeaa1735e8a9181900360200190a1565b606061034360018363ffffffff6105d516565b151561034e57600080fd5b600160a060020a03821660009081526004602090815260409182902080548351601f6002600019610100600186161502019093169290920491820184900484028101840190945280845290918301828280156103eb5780601f106103c0576101008083540402835291602001916103eb565b820191906000526020600020905b8154815290600101906020018083116103ce57829003601f168201915b50505050509050919050565b60005474010000000000000000000000000000000000000000900460ff16151561042057600080fd5b3360009081526004602090815260409091208251610440928401906107cd565b5061045260013363ffffffff6105d516565b151561051e5761046960013363ffffffff61073e16565b506005805460010190556040805133808252602080830184815285519484019490945284517fb43d84571ed93e552eba32d34b9bdb8da1e8cda0af378c8c5b413705c00f5a58949293869390929091606084019185019080838360005b838110156104de5781810151838201526020016104c6565b50505050905090810190601f16801561050b5780820380516001836020036101000a031916815260200191505b50935050505060405180910390a16105d2565b7f4d9aa4761c45cac26a1fd345f602649a95c61b251013baf7d61d1ae105bd9a9533826040518083600160a060020a0316600160a060020a0316815260200180602001828103825283818151815260200191508051906020019080838360005b8381101561059657818101518382015260200161057e565b50505050905090810190601f1680156105c35780820380516001836020036101000a031916815260200191505b50935050505060405180910390a15b50565b600160a060020a03811660009081526020839052604090205460ff165b92915050565b600160a060020a03811660009081526020839052604081205481908190819060ff1615156106295760009350610735565b600160a060020a038516600090815260208781526040808320805460ff1916905560028901805460018b019093529220549094509250600019840184811061066d57fe5b600091825260209091200154600287018054600160a060020a03909216925082918490811061069857fe5b6000918252602080832091909101805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a039485161790559183168152600188019091526040902082905560028601805460001985019081106106f457fe5b6000918252602090912001805473ffffffffffffffffffffffffffffffffffffffff191690556002860180549061072f90600019830161084b565b50600193505b50505092915050565b600160a060020a03811660009081526020839052604081205460ff1615610767575060006105f2565b50600160a060020a0316600081815260208381526040808320805460ff19166001908117909155600286018054968201845291842086905585810182559083529120909201805473ffffffffffffffffffffffffffffffffffffffff1916909117905590565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f1061080e57805160ff191683800117855561083b565b8280016001018555821561083b579182015b8281111561083b578251825591602001919060010190610820565b50610847929150610874565b5090565b81548183558181111561086f5760008381526020902061086f918101908301610874565b505050565b61029791905b80821115610847576000815560010161087a5600a165627a7a7230582049bf35f614d3bc6a117d33a925404092d4636aea3ce501a5b1b6a789ab3ec2940029`
 
 // DeployIdentity deploys a new cpchain contract, binding an instance of Identity to it.
 func DeployIdentity(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Identity, error) {
@@ -171,6 +174,536 @@ func (_Identity *IdentityTransactorRaw) Transfer(opts *bind.TransactOpts) (*type
 // Transact invokes the (paid) contract method with params as input values.
 func (_Identity *IdentityTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _Identity.Contract.contract.Transact(opts, method, params...)
+}
+
+// Enabled is a free data retrieval call binding the contract method 0x238dafe0.
+//
+// Solidity: function enabled() constant returns(bool)
+func (_Identity *IdentityCaller) Enabled(opts *bind.CallOpts) (bool, error) {
+	var (
+		ret0 = new(bool)
+	)
+	out := ret0
+	err := _Identity.contract.Call(opts, out, "enabled")
+	return *ret0, err
+}
+
+// Enabled is a free data retrieval call binding the contract method 0x238dafe0.
+//
+// Solidity: function enabled() constant returns(bool)
+func (_Identity *IdentitySession) Enabled() (bool, error) {
+	return _Identity.Contract.Enabled(&_Identity.CallOpts)
+}
+
+// Enabled is a free data retrieval call binding the contract method 0x238dafe0.
+//
+// Solidity: function enabled() constant returns(bool)
+func (_Identity *IdentityCallerSession) Enabled() (bool, error) {
+	return _Identity.Contract.Enabled(&_Identity.CallOpts)
+}
+
+// Get is a free data retrieval call binding the contract method 0xc2bc2efc.
+//
+// Solidity: function get(addr address) constant returns(string)
+func (_Identity *IdentityCaller) Get(opts *bind.CallOpts, addr common.Address) (string, error) {
+	var (
+		ret0 = new(string)
+	)
+	out := ret0
+	err := _Identity.contract.Call(opts, out, "get", addr)
+	return *ret0, err
+}
+
+// Get is a free data retrieval call binding the contract method 0xc2bc2efc.
+//
+// Solidity: function get(addr address) constant returns(string)
+func (_Identity *IdentitySession) Get(addr common.Address) (string, error) {
+	return _Identity.Contract.Get(&_Identity.CallOpts, addr)
+}
+
+// Get is a free data retrieval call binding the contract method 0xc2bc2efc.
+//
+// Solidity: function get(addr address) constant returns(string)
+func (_Identity *IdentityCallerSession) Get(addr common.Address) (string, error) {
+	return _Identity.Contract.Get(&_Identity.CallOpts, addr)
+}
+
+// Size is a free data retrieval call binding the contract method 0x949d225d.
+//
+// Solidity: function size() constant returns(uint256)
+func (_Identity *IdentityCaller) Size(opts *bind.CallOpts) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _Identity.contract.Call(opts, out, "size")
+	return *ret0, err
+}
+
+// Size is a free data retrieval call binding the contract method 0x949d225d.
+//
+// Solidity: function size() constant returns(uint256)
+func (_Identity *IdentitySession) Size() (*big.Int, error) {
+	return _Identity.Contract.Size(&_Identity.CallOpts)
+}
+
+// Size is a free data retrieval call binding the contract method 0x949d225d.
+//
+// Solidity: function size() constant returns(uint256)
+func (_Identity *IdentityCallerSession) Size() (*big.Int, error) {
+	return _Identity.Contract.Size(&_Identity.CallOpts)
+}
+
+// DisableContract is a paid mutator transaction binding the contract method 0x894ba833.
+//
+// Solidity: function disableContract() returns()
+func (_Identity *IdentityTransactor) DisableContract(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Identity.contract.Transact(opts, "disableContract")
+}
+
+// DisableContract is a paid mutator transaction binding the contract method 0x894ba833.
+//
+// Solidity: function disableContract() returns()
+func (_Identity *IdentitySession) DisableContract() (*types.Transaction, error) {
+	return _Identity.Contract.DisableContract(&_Identity.TransactOpts)
+}
+
+// DisableContract is a paid mutator transaction binding the contract method 0x894ba833.
+//
+// Solidity: function disableContract() returns()
+func (_Identity *IdentityTransactorSession) DisableContract() (*types.Transaction, error) {
+	return _Identity.Contract.DisableContract(&_Identity.TransactOpts)
+}
+
+// EnableContract is a paid mutator transaction binding the contract method 0x367edd32.
+//
+// Solidity: function enableContract() returns()
+func (_Identity *IdentityTransactor) EnableContract(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Identity.contract.Transact(opts, "enableContract")
+}
+
+// EnableContract is a paid mutator transaction binding the contract method 0x367edd32.
+//
+// Solidity: function enableContract() returns()
+func (_Identity *IdentitySession) EnableContract() (*types.Transaction, error) {
+	return _Identity.Contract.EnableContract(&_Identity.TransactOpts)
+}
+
+// EnableContract is a paid mutator transaction binding the contract method 0x367edd32.
+//
+// Solidity: function enableContract() returns()
+func (_Identity *IdentityTransactorSession) EnableContract() (*types.Transaction, error) {
+	return _Identity.Contract.EnableContract(&_Identity.TransactOpts)
+}
+
+// Register is a paid mutator transaction binding the contract method 0xf2c298be.
+//
+// Solidity: function register(content string) returns()
+func (_Identity *IdentityTransactor) Register(opts *bind.TransactOpts, content string) (*types.Transaction, error) {
+	return _Identity.contract.Transact(opts, "register", content)
+}
+
+// Register is a paid mutator transaction binding the contract method 0xf2c298be.
+//
+// Solidity: function register(content string) returns()
+func (_Identity *IdentitySession) Register(content string) (*types.Transaction, error) {
+	return _Identity.Contract.Register(&_Identity.TransactOpts, content)
+}
+
+// Register is a paid mutator transaction binding the contract method 0xf2c298be.
+//
+// Solidity: function register(content string) returns()
+func (_Identity *IdentityTransactorSession) Register(content string) (*types.Transaction, error) {
+	return _Identity.Contract.Register(&_Identity.TransactOpts, content)
+}
+
+// Remove is a paid mutator transaction binding the contract method 0xa7f43779.
+//
+// Solidity: function remove() returns()
+func (_Identity *IdentityTransactor) Remove(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Identity.contract.Transact(opts, "remove")
+}
+
+// Remove is a paid mutator transaction binding the contract method 0xa7f43779.
+//
+// Solidity: function remove() returns()
+func (_Identity *IdentitySession) Remove() (*types.Transaction, error) {
+	return _Identity.Contract.Remove(&_Identity.TransactOpts)
+}
+
+// Remove is a paid mutator transaction binding the contract method 0xa7f43779.
+//
+// Solidity: function remove() returns()
+func (_Identity *IdentityTransactorSession) Remove() (*types.Transaction, error) {
+	return _Identity.Contract.Remove(&_Identity.TransactOpts)
+}
+
+// IdentityNewIdentityIterator is returned from FilterNewIdentity and is used to iterate over the raw logs and unpacked data for NewIdentity events raised by the Identity contract.
+type IdentityNewIdentityIterator struct {
+	Event *IdentityNewIdentity // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log       // Log channel receiving the found contract events
+	sub  cpchain.Subscription // Subscription for errors, completion and termination
+	done bool                 // Whether the subscription completed delivering logs
+	fail error                // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *IdentityNewIdentityIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(IdentityNewIdentity)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(IdentityNewIdentity)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *IdentityNewIdentityIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *IdentityNewIdentityIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// IdentityNewIdentity represents a NewIdentity event raised by the Identity contract.
+type IdentityNewIdentity struct {
+	Who      common.Address
+	Identity string
+	Raw      types.Log // Blockchain specific contextual infos
+}
+
+// FilterNewIdentity is a free log retrieval operation binding the contract event 0xb43d84571ed93e552eba32d34b9bdb8da1e8cda0af378c8c5b413705c00f5a58.
+//
+// Solidity: e NewIdentity(who address, identity string)
+func (_Identity *IdentityFilterer) FilterNewIdentity(opts *bind.FilterOpts) (*IdentityNewIdentityIterator, error) {
+
+	logs, sub, err := _Identity.contract.FilterLogs(opts, "NewIdentity")
+	if err != nil {
+		return nil, err
+	}
+	return &IdentityNewIdentityIterator{contract: _Identity.contract, event: "NewIdentity", logs: logs, sub: sub}, nil
+}
+
+// WatchNewIdentity is a free log subscription operation binding the contract event 0xb43d84571ed93e552eba32d34b9bdb8da1e8cda0af378c8c5b413705c00f5a58.
+//
+// Solidity: e NewIdentity(who address, identity string)
+func (_Identity *IdentityFilterer) WatchNewIdentity(opts *bind.WatchOpts, sink chan<- *IdentityNewIdentity) (event.Subscription, error) {
+
+	logs, sub, err := _Identity.contract.WatchLogs(opts, "NewIdentity")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(IdentityNewIdentity)
+				if err := _Identity.contract.UnpackLog(event, "NewIdentity", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// IdentityRemoveIdentityIterator is returned from FilterRemoveIdentity and is used to iterate over the raw logs and unpacked data for RemoveIdentity events raised by the Identity contract.
+type IdentityRemoveIdentityIterator struct {
+	Event *IdentityRemoveIdentity // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log       // Log channel receiving the found contract events
+	sub  cpchain.Subscription // Subscription for errors, completion and termination
+	done bool                 // Whether the subscription completed delivering logs
+	fail error                // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *IdentityRemoveIdentityIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(IdentityRemoveIdentity)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(IdentityRemoveIdentity)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *IdentityRemoveIdentityIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *IdentityRemoveIdentityIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// IdentityRemoveIdentity represents a RemoveIdentity event raised by the Identity contract.
+type IdentityRemoveIdentity struct {
+	Who common.Address
+	Raw types.Log // Blockchain specific contextual infos
+}
+
+// FilterRemoveIdentity is a free log retrieval operation binding the contract event 0xbf872b0739f3bc6313ee30ed542a610dfcb6141e0e7f49ccc2ea8eeaa1735e8a.
+//
+// Solidity: e RemoveIdentity(who address)
+func (_Identity *IdentityFilterer) FilterRemoveIdentity(opts *bind.FilterOpts) (*IdentityRemoveIdentityIterator, error) {
+
+	logs, sub, err := _Identity.contract.FilterLogs(opts, "RemoveIdentity")
+	if err != nil {
+		return nil, err
+	}
+	return &IdentityRemoveIdentityIterator{contract: _Identity.contract, event: "RemoveIdentity", logs: logs, sub: sub}, nil
+}
+
+// WatchRemoveIdentity is a free log subscription operation binding the contract event 0xbf872b0739f3bc6313ee30ed542a610dfcb6141e0e7f49ccc2ea8eeaa1735e8a.
+//
+// Solidity: e RemoveIdentity(who address)
+func (_Identity *IdentityFilterer) WatchRemoveIdentity(opts *bind.WatchOpts, sink chan<- *IdentityRemoveIdentity) (event.Subscription, error) {
+
+	logs, sub, err := _Identity.contract.WatchLogs(opts, "RemoveIdentity")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(IdentityRemoveIdentity)
+				if err := _Identity.contract.UnpackLog(event, "RemoveIdentity", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// IdentityUpdateIdentityIterator is returned from FilterUpdateIdentity and is used to iterate over the raw logs and unpacked data for UpdateIdentity events raised by the Identity contract.
+type IdentityUpdateIdentityIterator struct {
+	Event *IdentityUpdateIdentity // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log       // Log channel receiving the found contract events
+	sub  cpchain.Subscription // Subscription for errors, completion and termination
+	done bool                 // Whether the subscription completed delivering logs
+	fail error                // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *IdentityUpdateIdentityIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(IdentityUpdateIdentity)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(IdentityUpdateIdentity)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *IdentityUpdateIdentityIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *IdentityUpdateIdentityIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// IdentityUpdateIdentity represents a UpdateIdentity event raised by the Identity contract.
+type IdentityUpdateIdentity struct {
+	Who      common.Address
+	Identity string
+	Raw      types.Log // Blockchain specific contextual infos
+}
+
+// FilterUpdateIdentity is a free log retrieval operation binding the contract event 0x4d9aa4761c45cac26a1fd345f602649a95c61b251013baf7d61d1ae105bd9a95.
+//
+// Solidity: e UpdateIdentity(who address, identity string)
+func (_Identity *IdentityFilterer) FilterUpdateIdentity(opts *bind.FilterOpts) (*IdentityUpdateIdentityIterator, error) {
+
+	logs, sub, err := _Identity.contract.FilterLogs(opts, "UpdateIdentity")
+	if err != nil {
+		return nil, err
+	}
+	return &IdentityUpdateIdentityIterator{contract: _Identity.contract, event: "UpdateIdentity", logs: logs, sub: sub}, nil
+}
+
+// WatchUpdateIdentity is a free log subscription operation binding the contract event 0x4d9aa4761c45cac26a1fd345f602649a95c61b251013baf7d61d1ae105bd9a95.
+//
+// Solidity: e UpdateIdentity(who address, identity string)
+func (_Identity *IdentityFilterer) WatchUpdateIdentity(opts *bind.WatchOpts, sink chan<- *IdentityUpdateIdentity) (event.Subscription, error) {
+
+	logs, sub, err := _Identity.contract.WatchLogs(opts, "UpdateIdentity")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(IdentityUpdateIdentity)
+				if err := _Identity.contract.UnpackLog(event, "UpdateIdentity", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
 }
 
 // SafeMathABI is the input ABI used to generate the binding from.
