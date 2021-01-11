@@ -11,3 +11,13 @@
 docker run --rm -v `pwd`:/go/src/bitbucket.org/cpchain/chain/identity -it cpchain2018/abigen abigen --sol ./identity/identity.sol --pkg identity --out ./identity/identity.go
 
 ```
+
+## 部署合约
+
+```bash
+
+build/main identity deploy --keystore ./dapps-admin/keystore/ --endpoint http://52.220.174.168:8501
+
+```
+
+合约地址：0x38ef6127a67C2d14FBa0a14cAEBe61Db093d3a4A
