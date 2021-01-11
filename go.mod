@@ -14,10 +14,10 @@ require (
 	github.com/onsi/gomega v1.10.4 // indirect
 )
 
-replace bitbucket.org/cpchain/chain => /Users/liaojinlong/Workspace/CPChain/chain/src/bitbucket.org/cpchain/chain
+replace bitbucket.org/cpchain/chain => ../chain/src/bitbucket.org/cpchain/chain
 
-replace github.com/ethereum/go-ethereum/crypto/randentropy => /Users/liaojinlong/Workspace/CPChain/chain/src/bitbucket.org/cpchain/chain/vendor/github.com/ethereum/go-ethereum/crypto/randentropy
+replace github.com/ethereum/go-ethereum/crypto/randentropy => ../chain/src/bitbucket.org/cpchain/chain/vendor/github.com/ethereum/go-ethereum/crypto/randentropy
 
-replace gopkg.in/fatih/set.v0 => /Users/liaojinlong/Workspace/CPChain/chain/src/bitbucket.org/cpchain/chain/vendor/gopkg.in/fatih/set.v0
+replace gopkg.in/fatih/set.v0 => ../chain/src/bitbucket.org/cpchain/chain/vendor/gopkg.in/fatih/set.v0
 
-replace github.com/ethereum/go-ethereum => /Users/liaojinlong/Workspace/CPChain/chain/src/bitbucket.org/cpchain/chain/vendor/github.com/ethereum/go-ethereum
+replace github.com/ethereum/go-ethereum => ../chain/src/bitbucket.org/cpchain/chain/vendor/github.com/ethereum/go-ethereum
