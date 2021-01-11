@@ -12,6 +12,8 @@ require (
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.4 // indirect
+	github.com/peterh/liner v1.2.1 // indirect
+	github.com/urfave/cli v1.20.1-0.20180821064027-934abfb2f102
 )
 
 replace bitbucket.org/cpchain/chain => ../chain/src/bitbucket.org/cpchain/chain
