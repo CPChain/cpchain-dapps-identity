@@ -114,7 +114,7 @@ func showConfigs(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	size, err := instance.Size(nil)
+	size, err := instance.Count(nil)
 	if err != nil {
 		log.Error("Maybe your identity contract address is wrong, please check it.")
 		return err

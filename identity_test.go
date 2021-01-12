@@ -113,7 +113,7 @@ func checkIdentity(t *testing.T, instance *identity.Identity, addr common.Addres
 }
 
 func checkNum(t *testing.T, instance *identity.Identity, amount int) {
-	num, err := instance.Size(nil)
+	num, err := instance.Count(nil)
 	checkError(t, "get num", err)
 
 	if num.Cmp(new(big.Int).SetInt64(int64(amount))) != 0 {

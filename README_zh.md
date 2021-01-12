@@ -16,8 +16,28 @@ docker run --rm -v `pwd`:/go/src/bitbucket.org/cpchain/chain/identity -it cpchai
 
 ```bash
 
+make build
+
 build/main identity deploy --keystore ./dapps-admin/keystore/ --endpoint http://52.220.174.168:8501
 
 ```
 
-合约地址：0x38ef6127a67C2d14FBa0a14cAEBe61Db093d3a4A
+合约地址：0xC53367856164DA3De57784E0c96710088DA77e20
+
+## 方法简介
+
++ `Register(identity:str)` : 注册身份（重新注册将覆盖之前的）
++ `Remove()` : 移除身份
++ `Count()` : 当前身份个数
++ `Get(address:str)` : 根据钱包地址获取用户身份
+
+身份需采用 JSON 进行序列化，字段为：
+
+```json
+
+{
+    "pub_key": "", // 使用 Base64 进行序列化
+    "name": "" // 用户名称
+}
+
+```

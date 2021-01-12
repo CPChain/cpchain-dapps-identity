@@ -13,7 +13,7 @@ contract Identity {
 
     Set.Data private users; // users
     mapping (address => string) private identities; // identities
-    uint256 count = 0; // users count
+    uint256 _count = 0; // users _count
 
     event NewIdentity(address who, string identity);
     event UpdateIdentity(address who, string identity);
@@ -30,7 +30,7 @@ contract Identity {
         identities[msg.sender] = content;
         if (!users.contains(msg.sender)) {
             users.insert(msg.sender);
-            count += 1;
+            _count += 1;
             emit NewIdentity(msg.sender, content);
         } else {
             emit UpdateIdentity(msg.sender, content);
@@ -40,7 +40,7 @@ contract Identity {
     function remove() public payable onlyEnabled {
         require(users.contains(msg.sender));
         users.remove(msg.sender);
-        count -= 1;
+        _count -= 1;
         emit RemoveIdentity(msg.sender);
     }
 
@@ -49,8 +49,8 @@ contract Identity {
         return identities[addr];
     }
 
-    function size() public view returns (uint256) {
-        return count;
+    function count() public view returns (uint256) {
+        return _count;
     }
 
     // owner can enable and disable rnode contract
