@@ -22,7 +22,7 @@ build/main identity deploy --keystore ./dapps-admin/keystore/ --endpoint http://
 
 ```
 
-合约地址：0xC53367856164DA3De57784E0c96710088DA77e20
+合约地址： 0xC53367856164DA3De57784E0c96710088DA77e20
 
 ## 方法简介
 

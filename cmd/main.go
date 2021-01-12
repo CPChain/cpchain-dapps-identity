@@ -12,8 +12,23 @@ import (
 	"bitbucket.org/cpchain/chain/commons/log"
 	"bitbucket.org/cpchain/chain/tools/contract-admin/flags"
 	"bitbucket.org/cpchain/chain/tools/contract-admin/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli"
 )
+
+var idFlag = []cli.Flag{
+	cli.StringFlag{
+		Name:  "id",
+		Usage: "identity",
+	},
+}
+
+var addrFlag = []cli.Flag{
+	cli.StringFlag{
+		Name:  "addr",
+		Usage: "address",
+	},
+}
 
 var (
 	// IdentityCommand identity contract
@@ -32,6 +47,27 @@ var (
 				Flags:       flags.GeneralFlags,
 				ArgsUsage:   "string",
 				Description: `deploy contract`,
+			},
+			{
+				Name:        "register",
+				Usage:       "register --id <identity>",
+				Action:      register,
+				Flags:       append(flags.GeneralFlags, idFlag...),
+				Description: `register identity`,
+			},
+			{
+				Name:        "get",
+				Usage:       "get --addr <address>",
+				Action:      get,
+				Flags:       append(flags.GeneralFlags, addrFlag...),
+				Description: `get identity`,
+			},
+			{
+				Name:        "show-configs",
+				Usage:       "identity show-configs",
+				Action:      showConfigs,
+				Flags:       flags.GeneralFlags,
+				Description: `show configs`,
 			},
 			{
 				Name:        "disable",
@@ -124,6 +160,35 @@ func showConfigs(ctx *cli.Context) error {
 	enabled, _ := instance.Enabled(nil)
 	log.Info("contract enabled", "value", enabled)
 
+	return nil
+}
+
+func register(ctx *cli.Context) error {
+	instance, opts, client, err := createContractInstanceAndTransactor(ctx, true)
+	if err != nil {
+		return err
+	}
+	id := ctx.String("id")
+	tx, err := instance.Register(opts, id)
+	if err != nil {
+		return err
+	}
+	return utils.WaitMined(client, tx)
+}
+
+func get(ctx *cli.Context) error {
+	instance, _, _, err := createContractInstanceAndTransactor(ctx, false)
+	if err != nil {
+		return err
+	}
+	addr := ctx.String("addr")
+	address := common.HexToAddress(addr)
+	identity, err := instance.Get(nil, address)
+	if err != nil {
+		log.Error("get identity failed", "error", err, "addr", addr)
+		return err
+	}
+	log.Info("got identity", "identity", identity)
 	return nil
 }
 
