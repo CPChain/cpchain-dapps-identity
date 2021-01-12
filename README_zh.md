@@ -26,10 +26,10 @@ build/main identity deploy --keystore ./dapps-admin/keystore/ --endpoint http://
 
 ## 方法简介
 
-+ `Register(identity:string)` : 注册身份（重新注册将覆盖之前的）
-+ `Remove()` : 移除身份
-+ `Count()` : 当前身份个数
-+ `Get(address:address)` : 根据钱包地址获取用户身份
++ `register(identity: string)` : 注册身份（重新注册将覆盖之前的）
++ `remove()` : 移除身份
++ `count()` : 当前身份个数
++ `get(address: address)` : 根据钱包地址获取用户身份
 
 身份需采用 JSON 进行序列化，字段为：
 
