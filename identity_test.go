@@ -117,6 +117,6 @@ func checkNum(t *testing.T, instance *identity.Identity, amount int) {
 	checkError(t, "get num", err)
 
 	if num.Cmp(new(big.Int).SetInt64(int64(amount))) != 0 {
-		t.Errorf("rnode'num %d != %d", num, amount)
+		t.Errorf("identity's num %d != %d", num, amount)
 	}
 }
