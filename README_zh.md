@@ -37,7 +37,10 @@ build/main identity deploy --keystore ./dapps-admin/keystore/ --endpoint http://
 
 {
     "pub_key": "", // 使用 Base64 进行序列化
-    "name": "" // 用户名称
+    "name": "", // 用户名称
+    "version": "1.0"
 }
 
 ```
+
++ *version 用于客户端消息处理方式的版本控制*
