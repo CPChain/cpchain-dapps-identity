@@ -33,7 +33,7 @@ Contract address： 0xC53367856164DA3De57784E0c96710088DA77e20
 + `count()` : count of identies
 + `get(address: address)` : get identity by the address
 
-Identity need be encoded in JSON, required fields as below:
+Identity need be to encoded in JSON, required fields as below:
 
 ```json
 
