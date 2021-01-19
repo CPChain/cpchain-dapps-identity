@@ -44,3 +44,9 @@ build/main identity deploy --keystore ./dapps-admin/keystore/ --endpoint http://
 ```
 
 + *version 用于客户端消息处理方式的版本控制*
+
+## FAQ
+
+### 为什么不使用用户自己的钱包公私钥
+
+为了安全和可替换，尽量让钱包的私钥仅用于发送交易。
