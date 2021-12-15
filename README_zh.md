@@ -43,6 +43,7 @@ build/main identity deploy --keystore ./dapps-admin/keystore/ --endpoint http://
 
 ```
 
++ *pub_key 公钥，请使用 ECC 公钥*
 + *version 用于客户端消息处理方式的版本控制*
 
 ## FAQ
