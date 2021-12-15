@@ -8,17 +8,9 @@
 
 ```bash
 
-docker run --rm -v `pwd`:/go/src/bitbucket.org/cpchain/chain/identity -it cpchain2018/abigen abigen --sol ./identity/identity.sol --pkg identity --out ./identity/identity.go
+npm i
 
-```
-
-## 部署合约
-
-```bash
-
-make build
-
-build/main identity deploy --keystore ./dapps-admin/keystore/ --endpoint http://52.220.174.168:8501
+npm run build
 
 ```
 
